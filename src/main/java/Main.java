@@ -1,29 +1,69 @@
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 public class Main {
 
     public static void main(String[] args) {
-        List<String> stringList = Arrays.asList("a", "a", "a", "asd", "asd", "q", "w", "r");
-        List<Integer> intList = Arrays.asList(1,1,1,2,2,34,56,78,89,0,0,0,0,0,0,0,0);
-        Map stringListMappedCount =  countOfElements(stringList);
-        Map intListMappedCount =  countOfElements(intList);
 
-        System.out.println(stringListMappedCount);
-        System.out.println(intListMappedCount);
+        BlockingQueue blockingQueue=new BlockingQueue();
+        Producer producer = new Producer(blockingQueue);
+        Consumer consumer = new Consumer(blockingQueue);
+        new Thread(producer).start();
+        new Thread(consumer).start();
     }
+}
+// Класс Магазин, хранящий произведенные товары
+class BlockingQueue {
+    private Queue<String> queue = new PriorityQueue<>();
+    public synchronized void deque() {
+        while (queue.size() < 1) {
+            try {
+                wait();
+            }
+            catch (InterruptedException e) {
+            }
+        }
+        String removedTask = queue.remove();
+        System.out.println("Потребитель сделал таску "+ removedTask);
+        System.out.println("Всего таск: " + queue.size());
+        notify();
+    }
+    public synchronized void enqueue(String task) {
+        while (queue.size()>=5) {
+            try {
+                wait();
+            }
+            catch (InterruptedException e) {
+            }
+        }
+        queue.add(task);
+        System.out.println("Производитель добавил таску " + task);
+        System.out.println("Всего таск: " + queue.size());
+        notify();
+    }
+}
+class Producer implements Runnable{
 
+    BlockingQueue blockingQueue;
+    Producer(BlockingQueue blockingQueue){
+        this.blockingQueue =blockingQueue;
+    }
+    public void run(){
+        for (int i = 1; i < 50; i++) {
+            blockingQueue.enqueue("task " + i);
+        }
+    }
+}
 
-    static Map countOfElements(List list) {
-        Map<Object, Integer> res = new HashMap<>();
-        list.forEach(t -> {
-            if (res.containsKey(t))
-                res.replace(t, res.get(t) + 1);
-            else
-                res.put(t, 1);
-        });
-        return res;
+class Consumer implements Runnable{
+
+    BlockingQueue blockingQueue;
+    Consumer(BlockingQueue blockingQueue){
+        this.blockingQueue=blockingQueue;
+    }
+    public void run(){
+        for (int i = 1; i < 50; i++) {
+            blockingQueue.deque();
+        }
     }
 }
