@@ -1,69 +1,48 @@
-import java.util.PriorityQueue;
-import java.util.Queue;
+/**
+ В виртуальном банке "ConcurrentBank" решено внедрить многопоточность для обработки операций по счетам клиентов.
+ Система должна поддерживать возможность одновременного пополнения (deposit), снятия (withdraw), а также переводов (transfer) между счетами.
+ Каждый счет имеет свой уникальный номер.
+
+ Реализуйте класс BankAccount с методами
+ - deposit,
+ - withdraw
+ - getBalance,
+поддерживающими многопоточное взаимодействие
+
+Реализуйте класс ConcurrentBank для управления счетами и выполнения переводов между ними. Класс должен предоставлять методы
+ - createAccount для создания нового счета
+ - transfer для выполнения переводов между счетами.
+
+Переводы между счетами должны быть атомарными, чтобы избежать ситуаций, когда одна часть транзакции выполняется успешно, а другая нет.
+
+Реализуйте метод getTotalBalance, который возвращает общий баланс всех счетов в банке.
+ */
 
 public class Main {
-
     public static void main(String[] args) {
+        ConcurrentBank bank = new ConcurrentBank();
 
-        BlockingQueue blockingQueue=new BlockingQueue();
-        Producer producer = new Producer(blockingQueue);
-        Consumer consumer = new Consumer(blockingQueue);
-        new Thread(producer).start();
-        new Thread(consumer).start();
-    }
-}
-// Класс Магазин, хранящий произведенные товары
-class BlockingQueue {
-    private Queue<String> queue = new PriorityQueue<>();
-    public synchronized void deque() {
-        while (queue.size() < 1) {
-            try {
-                wait();
-            }
-            catch (InterruptedException e) {
-            }
-        }
-        String removedTask = queue.remove();
-        System.out.println("Потребитель сделал таску "+ removedTask);
-        System.out.println("Всего таск: " + queue.size());
-        notify();
-    }
-    public synchronized void enqueue(String task) {
-        while (queue.size()>=5) {
-            try {
-                wait();
-            }
-            catch (InterruptedException e) {
-            }
-        }
-        queue.add(task);
-        System.out.println("Производитель добавил таску " + task);
-        System.out.println("Всего таск: " + queue.size());
-        notify();
-    }
-}
-class Producer implements Runnable{
+        // Создание счетов
+        BankAccount account1 = bank.createAccount(1000);
+        BankAccount account2 = bank.createAccount(500);
 
-    BlockingQueue blockingQueue;
-    Producer(BlockingQueue blockingQueue){
-        this.blockingQueue =blockingQueue;
-    }
-    public void run(){
-        for (int i = 1; i < 50; i++) {
-            blockingQueue.enqueue("task " + i);
-        }
-    }
-}
+        // Перевод между счетами
+        Thread transferThread1 = new Thread(() -> bank.transfer(account1, account2, 200));
+        Thread transferThread2 = new Thread(() -> bank.transfer(account2, account1, 100));
 
-class Consumer implements Runnable{
+        transferThread1.start();
+        transferThread2.start();
 
-    BlockingQueue blockingQueue;
-    Consumer(BlockingQueue blockingQueue){
-        this.blockingQueue=blockingQueue;
-    }
-    public void run(){
-        for (int i = 1; i < 50; i++) {
-            blockingQueue.deque();
+        try {
+            transferThread1.join();
+            transferThread2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+
+        // Вывод общего баланса
+        System.out.println("Total balance: " + bank.getTotalBalance());
     }
+
+
 }
