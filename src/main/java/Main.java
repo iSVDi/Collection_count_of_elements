@@ -1,48 +1,32 @@
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
- В виртуальном банке "ConcurrentBank" решено внедрить многопоточность для обработки операций по счетам клиентов.
- Система должна поддерживать возможность одновременного пополнения (deposit), снятия (withdraw), а также переводов (transfer) между счетами.
- Каждый счет имеет свой уникальный номер.
+ * Синхронизация потоков с использованием CyclicBarrier и ExecutorService
+ * В этой задаче мы будем использовать CyclicBarrier и ExecutorService для синхронизации нескольких потоков, выполняющих сложную задачу,
+ * и затем ожидающих, пока все потоки завершат выполнение, чтобы объединить результаты.
 
- Реализуйте класс BankAccount с методами
- - deposit,
- - withdraw
- - getBalance,
-поддерживающими многопоточное взаимодействие
 
-Реализуйте класс ConcurrentBank для управления счетами и выполнения переводов между ними. Класс должен предоставлять методы
- - createAccount для создания нового счета
- - transfer для выполнения переводов между счетами.
-
-Переводы между счетами должны быть атомарными, чтобы избежать ситуаций, когда одна часть транзакции выполняется успешно, а другая нет.
-
-Реализуйте метод getTotalBalance, который возвращает общий баланс всех счетов в банке.
+ Создайте класс ComplexTask, представляющий сложную задачу, которую несколько потоков будут выполнять.
+ В каждой задаче реализуйте метод execute(), который выполняет часть сложной задачи.
+ * Создайте класс ComplexTaskExecutor, в котором будет использоваться CyclicBarrier и ExecutorService для синхронизации выполнения задач.
+ * Реализуйте метод executeTasks(int numberOfTasks), который создает пул потоков и назначает каждому потоку экземпляр сложной задачи для выполнения.
+ * Затем используйте CyclicBarrier для ожидания завершения всех потоков и объединения результатов их работы.
+ * В методе main создайте экземпляр ComplexTaskExecutor и вызовите метод executeTasks с несколькими задачами для выполнения.
  */
 
 public class Main {
     public static void main(String[] args) {
-        ConcurrentBank bank = new ConcurrentBank();
 
-        // Создание счетов
-        BankAccount account1 = bank.createAccount(1000);
-        BankAccount account2 = bank.createAccount(500);
-
-        // Перевод между счетами
-        Thread transferThread1 = new Thread(() -> bank.transfer(account1, account2, 200));
-        Thread transferThread2 = new Thread(() -> bank.transfer(account2, account1, 100));
-
-        transferThread1.start();
-        transferThread2.start();
-
+        ComplexTaskExecutor executor = new ComplexTaskExecutor();
         try {
-            transferThread1.join();
-            transferThread2.join();
+            executor.executeTasks(5);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-
-        // Вывод общего баланса
-        System.out.println("Total balance: " + bank.getTotalBalance());
     }
+
+
 
 
 }
