@@ -1,87 +1,60 @@
-import java.util.List;
-import java.util.Map;
-
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toMap;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 /**
- * Предположим, у нас есть список заказов, и каждый заказ представляет собой продукт и его стоимость.
- * Задача состоит в использовании Stream API и коллекторов для решения следующих задач:
- * <p>
- * Создайте список заказов с разными продуктами и их стоимостями.
+ * Создайте коллекцию студентов, где каждый студент содержит информацию о предметах, которые он изучает, и его оценках по этим предметам.
+ * Используйте Parallel Stream для обработки данных и создания Map, где ключ - предмет, а значение - средняя оценка по всем студентам.
+ * Выведите результат: общую Map с средними оценками по всем предметам.
  */
 
-class Order {
-    private String product;
-    private double cost;
+class Student {
+    private String name;
+    private Map<String, Integer> grades;
 
-    public Order(String product, double cost) {
-        this.product = product;
-        this.cost = cost;
+    public Student(String name, Map<String, Integer> grades) {
+        this.name = name;
+        this.grades = grades;
     }
 
-    public String getProduct() {
-        return product;
-    }
-
-    public double getCost() {
-        return cost;
-    }
-
-    @Override
-    public String toString() {
-        return product + " " + cost;
+    public Map<String, Integer> getGrades() {
+        return grades;
     }
 }
 
+
 public class Main {
     public static void main(String[] args) {
-        List<Order> orders = List.of(
-                new Order("Laptop", 1200.0),
-                new Order("Smartphone", 800.0),
-                new Order("Laptop", 1500.0),
-                new Order("Tablet", 500.0),
-                new Order("Smartphone", 900.0)
+        List<Student> students = Arrays.asList(
+                new Student("Student1", Map.of("Math", 90, "Physics", 85)),
+                new Student("Student2", Map.of("Math", 95, "Physics", 88)),
+                new Student("Student3", Map.of("Math", 88, "Chemistry", 92)),
+                new Student("Student4", Map.of("Physics", 78, "Chemistry", 85))
         );
 
+        Map<String, ArrayList<Integer>> subjectScoresMap = new HashMap<>();
 
-        // * Группируйте заказы по продуктам.
-        var ordersByProducts = orders.stream().collect(groupingBy(Order::getProduct));
-        System.out.println(ordersByProducts);
+        students.parallelStream()
+                .flatMap(e -> e.getGrades().entrySet().stream())
+                .forEach(e -> {
+                    if (!subjectScoresMap.containsKey(e.getKey())) {
+                        subjectScoresMap.put(e.getKey(), new ArrayList<>());
+                    }
+                    ArrayList<Integer> current = subjectScoresMap.get(e.getKey());
+                    current.add(e.getValue());
+                });
 
-        //  * Для каждого продукта найдите общую стоимость всех заказов.
-        Map<String, Double> sumByProduct = ordersByProducts
-                .entrySet()
-                .stream()
-                .collect(toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().stream().map(Order::getCost).reduce((double) 0, Double::sum)
-                ));
-        System.out.println(sumByProduct);
+        List<Map.Entry<String, BigDecimal>> res = subjectScoresMap.entrySet().parallelStream().flatMap(e -> {
+            BigDecimal scoreSum = BigDecimal.valueOf(e.getValue().parallelStream().reduce(0, Integer::sum));
+            BigDecimal scoreCount = BigDecimal.valueOf(e.getValue().size());
 
-       //  * Отсортируйте продукты по убыванию общей стоимости.
-        var sortedByCost = orders.stream().sorted( (a, b) -> {
-            if (a.getCost() > b.getCost())
-                    return -1;
-            return 1;
+            BigDecimal middleScore = scoreSum.divide(scoreCount, RoundingMode.UP);
+            Map<String, BigDecimal> map = new HashMap<>();
+            map.put(e.getKey(), middleScore);
+            return map.entrySet().stream();
         }).toList();
-
-        System.out.println(sortedByCost);
-
-        /*
-         * Выберите три самых дорогих продукта.
-         * Выведите результат: список трех самых дорогих продуктов и их общая стоимость.
-         */
-
-        var topExpensive = sortedByCost.subList(0, 3);
-        var topExpensiveSum = topExpensive.stream()
-                .map(Order::getCost)
-                .reduce(0.0, Double::sum);
-
-        System.out.println(topExpensive);
-        System.out.println(topExpensiveSum);
+        System.out.println(res);
     }
-
 
 }
 
